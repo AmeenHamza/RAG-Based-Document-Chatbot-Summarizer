@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>RAG-Based Legal Document Chatbot</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            margin-top: 30px;
+        }
+
+        .left-col {
+            border-right: 1px solid #dee2e6;
+            padding-right: 30px;
+        }
+
+        .right-col {
+            padding-left: 30px;
+        }
+
+        .chat-box {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            height: 550px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+        }
+
+        .chat-input {
+            margin-top: 10px;
+        }
+
+        .user-msg {
+            text-align: right;
+            color: #0d6efd;
+        }
+
+        .bot-msg {
+            text-align: left;
+            color: #198754;
+        }
+
+        .section-title {
+            margin-top: 20px;
+        }
+
+        .extracted-box {
+            background: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            height: 370px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="row">
+            <!-- Left Column -->
+            <div class="col-md-6 left-col">
+                <h4>Upload Document</h4>
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <input type="file" class="form-control" name="file" accept=".pdf,.txt,.docx,.csv,.xlsx"
+                            required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Upload</button>
+                    <div id="upload-status" class="mt-2 text-success"></div>
+                </form>
+
+                <div class="section-title">
+                    <h5>Extract Key Clauses / Summary</h5>
+                    <button id="extractBtn" class="btn btn-warning">Extract Important Info</button>
+                    <button id="downloadBtn" class="btn btn-secondary d-none">Download PDF</button>
+
+                    <!-- Scrollable extracted points box -->
+                    <div id="extracted-text" class="extracted-box"></div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="col-md-6 right-col">
+                <h4>Ask Questions</h4>
+                <div class="chat-box" id="chat-box">
+                    <!-- Chat history will appear here -->
+                </div>
+
+                <div class="chat-input">
+                    <form id="chatForm">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="question" placeholder="Ask a question..."
+                                required>
+                            <button type="submit" class="btn btn-success">Ask</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- jQuery and Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <!-- Inside your <script> tag -->
+
+    <script>
+        $(document).ready(function () {
+            let extractedContent = [];
+
+            // Upload document
+            $('#uploadForm').submit(function (e) {
+                e.preventDefault();
+                $('#upload-status').text("Uploading...");
+                $('#chatForm button').prop('disabled', true); // disable ask
+                const fileInput = $(this).find('input[type="file"]')[0];
+                const allowedTypes = ['application/pdf', 'text/plain',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',  // .docx
+                    'application/vnd.ms-excel',                                                // .xls
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',       // .xlsx
+                    'text/csv'];
+
+                if (!fileInput.files.length || !allowedTypes.includes(fileInput.files[0].type)) {
+                    $('#upload-status')
+                        .removeClass('text-success')
+                        .addClass('text-danger')
+                        .text("❌ Unsupported file format. Please upload PDF, TXT, DOCX, CSV, or XLSX.");
+                    $('#chatForm button').prop('disabled', false);  // re-enable Ask
+                    return;
+                }
+
+
+                let formData = new FormData(this);
+
+                $.ajax({
+                    url: '/upload',
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (res) {
+                        $('#upload-status').text(res.message || 'Document uploaded successfully.');
+                        $('#extracted-text').empty();
+                        $('#chat-box').empty(); // ✅ Clear old conversation
+                        $('#downloadBtn').addClass('d-none');
+                        $('#chatForm button').prop('disabled', false); // ✅ Re-enable ask
+                    },
+                    error: function () {
+                        $('#upload-status').text("Failed to upload document.");
+                    }
+                });
+            });
+
+            // Extract clauses/summary
+            $('#extractBtn').click(function () {
+                $('#extracted-text').html("Extracting...");
+                $('#downloadBtn').addClass('d-none');
+
+                $.get('/extract', function (res) {
+                    let html = "<ul>";
+                    extractedContent = [];  // ✅ RESET properly
+
+                    res.forEach(function (item) {
+                        html += "<li class='point-item'>" + item + "</li>";
+                        extractedContent.push(item);  // ✅ Store in array
+                    });
+
+                    html += "</ul>";
+                    $('#extracted-text').html(html);
+                    $('#downloadBtn').removeClass('d-none');
+                }).fail(function () {
+                    $('#extracted-text').html("Extraction failed. Upload a document first.");
+                });
+            });
+
+            // Ask question
+            $('#chatForm').submit(function (e) {
+                e.preventDefault();
+                const question = $('#question').val();
+                $('#chat-box').append(`<div class='user-msg'><strong>You:</strong> ${question}</div>`);
+                $('#question').val('');
+                $.post('/ask', { question: question }, function (res) {
+                    $('#chat-box').append(`<div class='bot-msg'><strong>Bot:</strong> ${res.answer}</div>`);
+                    $('#chat-box').scrollTop($('#chat-box')[0].scrollHeight);
+                }).fail(function () {
+                    $('#chat-box').append(`<div class='bot-msg'><strong>Bot:</strong> Something went wrong.</div>`);
+                });
+            });
+
+            // Download PDF
+            $('#downloadBtn').click(function () {
+                if (extractedContent.length === 0) {
+                    alert("No content to download.");
+                    return;
+                }
+
+                fetch('/download_pdf', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ points: extractedContent })  // ✅ Cleanly pass array
+                })
+                    .then(res => {
+                        if (!res.ok) throw new Error("Failed to generate PDF");
+                        return res.blob();
+                    })
+                    .then(blob => {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'extracted_summary.pdf';
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    })
+                    .catch(err => alert("Error: " + err.message));
+            });
+
+        });
+    </script>
+
+
+
+</body>
+
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sign Up</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap, Bootstrap Icons, SweetAlert & Fonts -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #e3f2fd, #fdfbfb);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .card {
+      backdrop-filter: blur(20px);
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 1.5rem;
+      padding: 2rem;
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 400px;
+      animation: fadeIn 0.7s ease-out;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    h3 {
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 1.5rem;
+      color: #343a40;
+    }
+
+    .form-label {
+      font-weight: 500;
+    }
+
+    .form-control {
+      border-radius: 0.6rem;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .form-control:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.2);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #e3ecf9, #a5c4fb);
+      border: none;
+      color: black;
+      border-radius: 0.6rem;
+      transition: transform 0.2s ease, background 0.3s ease;
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #cbdcf7, #528df1);
+      transform: scale(1.03);
+    }
+
+    .input-group-text {
+      background: #f0f0f0;
+      border-radius: 0.5rem;
+      cursor: pointer;
+    }
+
+    a {
+      color: #007bff;
+      font-weight: 500;
+    }
+
+    a:hover {
+      color: #0056b3;
+      text-decoration: underline;
+    }
+
+    @keyframes fadeIn {
+      0% {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Responsive Enhancements */
+    @media (max-width: 480px) {
+      .card {
+        padding: 1.5rem;
+      }
+
+      h3 {
+        font-size: 1.3rem;
+      }
+
+      .form-label {
+        font-size: 0.9rem;
+      }
+
+      .form-control {
+        font-size: 0.9rem;
+      }
+
+      .btn {
+        font-size: 0.95rem;
+        padding: 10px 16px;
+      }
+
+      p {
+        font-size: 0.85rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h3>📝 Create Your Account</h3>
+    <form action="/signup" method="POST">
+      <div class="mb-3">
+        <label for="name" class="form-label">👤 Full Name</label>
+        <input type="text" name="name" class="form-control" id="name" required>
+      </div>
+      <div class="mb-3">
+        <label for="email" class="form-label">📧 Email</label>
+        <input type="email" name="email" class="form-control" id="email" required>
+      </div>
+      <div class="mb-3">
+        <label for="signupPassword" class="form-label">🔑 Password</label>
+        <div class="input-group">
+          <input type="password" name="password" class="form-control" id="signupPassword" required>
+          <span class="input-group-text" onclick="togglePassword('signupPassword', this)">
+            <i class="bi bi-eye"></i>
+          </span>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary w-100 mt-3">Sign Up</button>
+      <p class="mt-4 text-center text-muted">Already have an account? <a href="/login">Login here</a></p>
+    </form>
+  </div>
+
+  <script>
+    function togglePassword(inputId, icon) {
+      const input = document.getElementById(inputId);
+      const i = icon.querySelector('i');
+      if (input.type === "password") {
+        input.type = "text";
+        i.classList.replace("bi-eye", "bi-eye-slash");
+      } else {
+        input.type = "password";
+        i.classList.replace("bi-eye-slash", "bi-eye");
+      }
+    }
+  </script>
+
+  {% if email_exists %}
+  <script>
+    Swal.fire({
+      title: "Email already registered!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Login now",
+      cancelButtonText: "Try new email",
+      showClass: {
+        popup: 'animate__animated animate__fadeInDown'
+      },
+      hideClass: {
+        popup: 'animate__animated animate__fadeOutUp'
+      },
+      timer: 3000,
+      timerProgressBar: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        window.location.href = "/login";
+      }
+    });
+  </script>
+  {% endif %}
+
+</body>
+</html>

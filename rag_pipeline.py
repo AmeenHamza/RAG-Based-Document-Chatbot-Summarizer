@@ -27,7 +27,7 @@ def load_docs(path):
         return loader.load()
     elif ext == ".csv":
         df = pd.read_csv(path)
-        text = df.to_string(index=False)
+        text = df.to_string(index=False)    
         return [Document(page_content=text)]
     elif ext == ".xlsx":
         df = pd.read_excel(path)
@@ -35,6 +35,8 @@ def load_docs(path):
         return [Document(page_content=text)]
     else:
         raise ValueError(f"Unsupported file format: {ext}")
+    
+
 
 def create_vector_store(docs):
     global active_vectorstore, vectorstore_path
@@ -61,9 +63,16 @@ def create_vector_store(docs):
 
 def ask_question(vector_store, question):
     llm = ChatOpenAI(openai_api_key=OPENAI_API_KEY)
-    retriever = vector_store.as_retriever()
-    qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever)
-    return qa_chain.run(question)
+    retriever = vector_store.as_retriever(return_source_documents=True)  # important
+    qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever, return_source_documents=True)
+    result = qa_chain(question)
+    
+    answer = result['result']
+    sources = result.get("source_documents", [])
+    source_texts = [doc.page_content for doc in sources]
+
+    return answer, source_texts
+
 
 def extract_key_points(docs):
     llm = ChatOpenAI(openai_api_key=OPENAI_API_KEY)
@@ -73,8 +82,33 @@ def extract_key_points(docs):
 
     for i, chunk in enumerate(chunks):
         prompt = f"""
-You are a legal assistant. If the following is a legal contract, extract all important clauses, terms, dates, obligations, and rights as bullet points.
-If it's a general document, summarize the key points.
+You are a legal assistant and document Important points Extracter. If the following is a legal contract, extract all important clauses, terms, dates, obligations, and rights etc as bullet points.
+If it's a general document, Extract just important point from the Document.
+
+Text chunk {i+1}:
+\"\"\"{chunk.page_content}\"\"\"
+"""
+        try:
+            response = llm.invoke(prompt)  # FIX: use invoke not predict
+            lines = response.content.split("\n") if hasattr(response, "content") else response.split("\n")
+            for line in lines:
+                clean = line.strip("-\u2022 \n")
+                if clean:
+                    points.append("\u2022 " + clean)
+        except Exception as e:
+            points.append(f"[Error extracting from chunk {i+1}]")
+
+    return points
+
+def Summarize_document(docs):
+    llm = ChatOpenAI(openai_api_key=OPENAI_API_KEY)
+    splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    chunks = splitter.split_documents(docs)
+    points = []
+
+    for i, chunk in enumerate(chunks):
+        prompt = f"""
+you are a document summarizer just summarize the complete document 
 
 Text chunk {i+1}:
 \"\"\"{chunk.page_content}\"\"\"

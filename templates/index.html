@@ -3,229 +3,634 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>RAG-Based Legal Document Chatbot</title>
+    <title>RAG-Based Document Chatbot</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            background-color: #f8f9fa;
-        }
-
-        .container {
-            margin-top: 30px;
-        }
-
-        .left-col {
-            border-right: 1px solid #dee2e6;
-            padding-right: 30px;
-        }
-
-        .right-col {
-            padding-left: 30px;
-        }
-
-        .chat-box {
-            background: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            height: 550px;
-            overflow-y: auto;
-            border: 1px solid #ccc;
-        }
-
-        .chat-input {
-            margin-top: 10px;
-        }
-
-        .user-msg {
-            text-align: right;
-            color: #0d6efd;
-        }
-
-        .bot-msg {
-            text-align: left;
-            color: #198754;
-        }
-
-        .section-title {
-            margin-top: 20px;
-        }
-
-        .extracted-box {
-            background: #fff;
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid #ccc;
-            height: 370px;
-            overflow-y: auto;
-            margin-top: 15px;
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
+<style>
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        background-color: #f1f3f6;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .navbar {
+        background: linear-gradient(90deg, #343a40, #212529);
+        padding: 15px;
+        animation: fadeInDown 0.6s ease-in-out;
+    }
+
+    .navbar-brand {
+        font-weight: bold;
+        font-size: 22px;
+    }
+
+    footer {
+        background-color: #343a40;
+        color: #ccc;
+        padding: 15px 0;
+        text-align: center;
+        margin-top: 40px;
+        font-size: 14px;
+    }
+
+    .footer-icons {
+        margin-top: 8px;
+    }
+
+    .footer-icons a {
+        color: #ccc;
+        margin: 0 10px;
+        font-size: 18px;
+        transition: color 0.3s ease;
+    }
+
+    .footer-icons a:hover {
+        color: #60A5FA !important;
+        transition: color 0.3s ease;
+    }
+
+    .Mail:hover {
+        color: #60A5FA !important;
+        transition: color 0.3s ease;
+    }
+
+
+    .container {
+        margin-top: 30px;
+        animation: fadeInUp 0.8s ease-in-out;
+    }
+
+    .extracted-box,
+    .chat-box,
+    #document-preview {
+        background: #fff;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        border: none;
+        height: 500px;
+        overflow-y: auto;
+        transition: all 0.3s ease;
+    }
+
+    .chat-box {
+        background: #fefefe;
+    }
+
+    .extracted-box:hover,
+    .chat-box:hover,
+    #document-preview:hover {
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    .chat-input {
+        margin-top: 10px;
+    }
+
+    .user-msg {
+        text-align: right;
+        color: #007bff;
+        font-weight: 500;
+        margin-bottom: 8px;
+    }
+
+    .bot-msg {
+        text-align: left;
+        color: #28a745;
+        font-weight: 500;
+        margin-bottom: 8px;
+    }
+
+    button.btn {
+        transition: all 0.2s ease;
+    }
+
+    button.btn:hover {
+        transform: scale(1.03);
+    }
+
+    .doc-paragraph {
+        margin-bottom: 10px;
+        line-height: 1.6;
+    }
+
+    .highlight-line {
+        background-color: yellow;
+    }
+
+    h4,
+    h5 {
+        font-weight: 600;
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-30px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .spinner-box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        font-weight: 500;
+    }
+
+    .dark-mode {
+        background-color: #1e1e1e !important;
+        color: white !important;
+    }
+
+    .dark-mode .extracted-box,
+    .dark-mode .chat-box,
+    .dark-mode #document-preview,
+    .dark-mode #Application-feature,
+    .dark-mode .list-group-item {
+        background-color: #2c2c2c !important;
+        color: #eee !important;
+    }
+
+    .dark-mode .navbar,
+    .dark-mode footer {
+        background-color: #000 !important;
+    }
+
+
+
+    .dark-toggle-btn {
+        background: none;
+        border: 1px solid #ccc;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 5px;
+        margin-left: 20px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        /* Smooth transition */
+    }
+
+    .dark-toggle-btn:hover {
+        background-color: white;
+        color: #333;
+        border-color: white;
+        box-shadow: 0 0 5px rgba(255, 255, 255, 0.6);
+    }
+
+    #drop-area {
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    #drop-area.dragover {
+        background-color: #e3f2fd;
+        border-color: #0d6efd;
+    }
+
+    .dark-mode #drop-area {
+        background-color: #2c2c2c !important;
+        border-color: #888 !important;
+        color: #eee !important;
+    }
+
+    .dark-mode #chat-sidebar {
+        background-color: #2c2c2c !important;
+        border-color: #888 !important;
+        color: #eee !important;
+    }
+
+    .dark-mode #drop-area p,
+    .dark-mode #fileName {
+        color: #ccc !important;
+    }
+
+    .dark-mode .btn-outline-primary {
+        color: #fff !important;
+        border-color: #ccc !important;
+    }
+
+    .dark-mode .btn-outline-primary:hover {
+        background-color: #fff !important;
+        color: #333 !important;
+    }
+
+    .dark-mode #chat-dropdown {
+        background-color: #2c2c2c !important;
+        border-color: #888 !important;
+        color: #eee !important;
+    }
+
+    .dark-mode  #dropdown-menu .dropdown-item {
+        transition: background-color 0.2s ease;
+    }
+
+    .dark-mode  #dropdown-menu .dropdown-item:hover {
+        background-color: #f0f0f0;
+        /* light grey hover effect */
+    }
+
+    #dropdown-menu .dropdown-item {
+        transition: background-color 0.2s ease;
+    }
+
+    #dropdown-menu .dropdown-item:hover {
+        background-color: #f0f0f0;
+        /* light grey hover effect */
+    }
+
+
+    #voiceControls button {
+        font-size: 20px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        transition: transform 0.2s ease, color 0.2s ease;
+    }
+
+    #voiceControls button:first-child:hover {
+        color: green;
+        transform: scale(1.3);
+    }
+
+    #voiceControls button:last-child:hover {
+        color: red;
+        transform: scale(1.3);
+    }
+
+    .listening::placeholder {
+        content: "";
+        animation: dots 1s steps(5, end) infinite;
+        color: red;
+    }
+
+    @keyframes dots {
+        0% {
+            content: "Listening";
+        }
+
+        20% {
+            content: "Listening.";
+        }
+
+        40% {
+            content: "Listening..";
+        }
+
+        60% {
+            content: "Listening...";
+        }
+
+        80% {
+            content: "Listening....";
+        }
+
+        100% {
+            content: "Listening.....";
+        }
+    }
+
+    /* Custom Scrollbar Styling */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        /* Light background */
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #888;
+        /* Scroll thumb color */
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+        /* On hover */
+    }
+
+    @media (max-width: 576px) {
+        .navbar .navbar-brand {
+            font-size: 1rem;
+        }
+
+        .navbar .btn {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+        }
+
+        .navbar .container-fluid {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .navbar .d-flex.align-items-center.gap-2 {
+            margin-top: 0.5rem;
+            width: 100%;
+            justify-content: flex-end;
+        }
+    }
+
+    #chat-history-list .list-group-item {
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+
+    #chat-history-list .list-group-item:hover {
+        background-color: #e2e6ea;
+    }
+
+    .dark-mode #chat-history-list .list-group-item:hover {
+        background-color: #e2e6ea;
+    }
+
+    #chat-history-list .list-group-item.active-chat {
+        background-color: #007bff;
+        color: white;
+        font-weight: bold;
+    }
+
+     .list-group-item {
+        transition: background-color 0.2s ease;
+    }
+
+    .list-group-item:hover {
+        background-color: #e2e6ea;
+    }
+
+    .list-group-item.active-chat {
+        background-color: #007bff;
+        color: white;
+        font-weight: bold;
+    }
+
+    
+    .chat-title {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: inline-block;
+        max-width: 140px;
+        /* fit inside sidebar */
+        vertical-align: middle;
+    }
+
+    .rename-input {
+        max-width: 130px;
+        font-size: 14px;
+        padding: 2px 6px;
+    }
+
+    #fileName {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+</style>
+
 <body>
+    <nav class="navbar navbar-dark bg-dark mb-5">
+        <div class="container-fluid d-flex justify-content-between align-items-center flex-wrap">
+
+            <!-- Left: Back + Title -->
+            <div class="d-flex align-items-center mb-2 mb-md-0">
+                <button onclick="goBack()" class="btn btn-sm btn-outline-light me-2" title="Back">
+                    <i class="bi bi-arrow-left"></i>
+                </button>
+                <span class="navbar-brand mb-0 h1">📚 RAG-Based Semantic QA Dashboard</span>
+            </div>
+
+            <!-- Right: Toggle Mode + Logout -->
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-outline-light" onclick="toggleDarkMode()">🌙 Toggle Mode</button>
+                <form action="/logout" method="POST" class="m-0">
+                    <button type="submit" class="btn btn-sm btn-danger">Logout</button>
+                </form>
+            </div>
+
+        </div>
+    </nav>
+
+
 
     <div class="container">
-        <div class="row">
-            <!-- Left Column -->
-            <div class="col-md-6 left-col">
-                <h4>Upload Document</h4>
+        <!-- Upload Section (Drag & Drop + File Picker) -->
+        <div class="row justify-content-center" id="upload-section">
+            <div class="col-md-8 text-center mb-3 mt-3">
+                <h4>📄 Upload a Legal Document</h4>
                 <form id="uploadForm" enctype="multipart/form-data">
-                    <div class="mb-3">
-                        <input type="file" class="form-control" name="file" accept=".pdf,.txt,.docx,.csv,.xlsx"
-                            required>
+                    <div id="drop-area" class="mb-3 p-4 border border-2 border-secondary rounded bg-light">
+                        <p class="text-muted">📂 Drag & drop your file here, or click to browse.</p>
+                        <input type="file" id="fileElem" name="file" accept=".pdf,.txt,.docx,.csv,.xlsx" required
+                            hidden>
+                        <label for="fileElem" class="btn btn-outline-primary">Choose File</label>
+                        <div id="fileName" class="mt-2 text-secondary"></div>
                     </div>
                     <button type="submit" class="btn btn-primary">Upload</button>
                     <div id="upload-status" class="mt-2 text-success"></div>
                 </form>
+            </div>
+        </div>
 
-                <div class="section-title">
-                    <h5>Extract Key Clauses / Summary</h5>
-                    <button id="extractBtn" class="btn btn-warning">Extract Important Info</button>
-                    <button id="downloadBtn" class="btn btn-secondary d-none">Download PDF</button>
+        <div id="Application-feature" class="p-4 rounded" style="margin-top: 20px; background: #f9f9f9;">
+            <h4 class="mb-3"><i class="bi bi-stars"></i> Application Features</h4>
 
-                    <!-- Scrollable extracted points box -->
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item">
+                    <i class="bi bi-upload me-2 text-primary"></i>
+                    Upload documents in <strong>PDF, TXT, DOCX, CSV, or XLSX</strong> format (Max size: 10MB)
+                </li>
+                <li class="list-group-item">
+                    <i class="bi bi-eye me-2 text-success"></i>
+                    Preview uploaded document content before processing
+                </li>
+                <li class="list-group-item">
+                    <i class="bi bi-question-circle me-2 text-warning"></i>
+                    Ask intelligent questions from the document using <strong>Semantic Search (RAG-based Q&A)</strong>
+                </li>
+                <li class="list-group-item">
+                    <i class="bi bi-file-earmark-text me-2 text-danger"></i>
+                    Generate a <strong>concise summary</strong> of the entire document
+                </li>
+                <li class="list-group-item">
+                    <i class="bi bi-lightbulb me-2 text-info"></i>
+                    Extract key <strong>points or important clauses</strong> from the document
+                </li>
+                <li class="list-group-item">
+                    <i class="bi bi-download me-2 text-secondary"></i>
+                    Download the <strong>generated summary and key points</strong> as a <strong>PDF</strong> file
+                </li>
+                <li class="list-group-item">
+                    <i class="bi bi-moon-stars me-2 text-secondary"></i>
+                    Toggle between <strong>light and dark</strong> modes for comfortable viewing
+                </li>
+            </ul>
+        </div>
+
+
+
+
+        <!-- Main App Section -->
+        <div id="main-content" style="display:none;">
+            <div class="row mt-5 mb-5">
+                <div class="col-12 col-lg-5 mb-4">
+                    <h5>📘 Uploaded Document</h5>
+                    <div id="document-preview" class="extracted-box"></div>
+                </div>
+
+                <div class="col-12 col-lg-7 mb-4">
+                    <h5>💬 Ask a Question</h5>
+
+                    <div class="d-flex" style="position: relative; min-height: 400px;">
+                        <!-- Sidebar for chat history -->
+                        <div id="chat-sidebar"
+                            style="width: 210px; background-color: #f1f1f1; border-right: 1px solid #ccc; padding: 10px; overflow-y: auto;">
+                            <button id="new-chat-btn" class="btn btn-sm btn-primary w-100 mb-2">+ New Chat</button>
+                            <ul id="chat-history-list" class="list-group">
+                                <!-- Dynamically added chat titles here -->
+                                <!-- <li class="list-group-item">Chat 1</li> -->
+                            </ul>
+                        </div>
+
+                        <!-- Chat box area -->
+                        <div style="flex: 1; padding-left: 15px;">
+                            <div class="chat-box" id="chat-box"
+                                style="height: 500px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;"></div>
+
+                            <div class="chat-input">
+                                <form id="chatForm">
+                                    <div class="input-group mt-2" style="position: relative;">
+                                        <button type="button" class="btn btn-outline-secondary"
+                                            onclick="startVoiceInput()" title="🎤 Voice Input">
+                                            <i class="fas fa-microphone"></i>
+                                        </button>
+
+                                        <input type="text" class="form-control" id="question"
+                                            placeholder="Ask something..." required>
+
+                                        <!-- Animated "Listening..." overlay -->
+                                        <span id="listeningAnim" style="
+                            position: absolute;
+                            top: 50%;
+                            left: 55px;
+                            transform: translateY(-50%);
+                            font-weight: bold;
+                            pointer-events: none;
+                            user-select: none;
+                            z-index: 5;
+                            display: none;
+                        ">
+                                            <span id="listeningText"
+                                                style="color: red; font-size: 16px;">Listening</span>
+                                            <span id="listeningDots" style="color: red; font-size: 24px;"></span>
+                                        </span>
+
+                                        <button type="submit" class="btn btn-success">Ask</button>
+                                    </div>
+
+                                    <!-- Tick & Cross Buttons -->
+                                    <div id="voiceControls" style="display:none; gap: 10px; margin-top: 10px;">
+                                        <button onclick="confirmVoiceInput()" title="Confirm voice input">✔️</button>
+                                        <button onclick="cancelVoiceInput()" title="Cancel voice input">✖️</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Row 2: Summary + Extracted Clauses -->
+            <div class="row mt-4 mb-5">
+                <div class="col-12 col-lg-6 mb-4">
+                    <h5>📄 Summary</h5>
+                    <button id="summarizeBtn" class="btn btn-info mb-2">Summarize</button>
+                    <button id="downloadSummaryBtn" class="btn btn-info mb-2 d-none">Download Summary</button>
+                    <div id="summary-box" class="extracted-box"></div>
+                </div>
+                <div class="col-12 col-lg-6 mb-4">
+                    <h5>📌 Extracted Clauses</h5>
+                    <button id="extractBtn" class="btn btn-warning mb-2">Extract Clauses</button>
+                    <button id="downloadBtn" class="btn btn-warning mb-2 d-none">Download Clauses</button>
                     <div id="extracted-text" class="extracted-box"></div>
                 </div>
             </div>
 
-            <!-- Right Column -->
-            <div class="col-md-6 right-col">
-                <h4>Ask Questions</h4>
-                <div class="chat-box" id="chat-box">
-                    <!-- Chat history will appear here -->
-                </div>
-
-                <div class="chat-input">
-                    <form id="chatForm">
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="question" placeholder="Ask a question..."
-                                required>
-                            <button type="submit" class="btn btn-success">Ask</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
         </div>
     </div>
 
+    <footer style="background-color: #111827; color: white; padding: 30px 0; text-align: center; position: relative;">
+        <div class="container" style="max-width: 900px; margin: auto;">
+            <div class="footer-text" style="margin-bottom: 15px; line-height: 1.6; font-size: 16px;">
+                Made with ❤️ for <strong>Document Intelligence</strong> <br>
+                By <strong>Ifham Ahmed Ansari</strong> &nbsp;|&nbsp; © 2025 <strong>RAG-QA</strong>
+                <br><br>
+                📧 Email: <a href="mailto:ifhamansari933@gmail.com" class="Mail"
+                    style="color: white;">ifhamansari933@gmail.com</a>
+            </div>
+            <div class="footer-icons" style="font-size: 22px;">
+                <a href="https://github.com/Ifham-Ansari" target="_blank" title="GitHub"
+                    style="margin: 0 10px; color: white;">
+                    <i class="fab fa-github"></i>
+                </a>
+                <a href="https://www.linkedin.com/in/ifham-ansari%F0%9F%87%B5%F0%9F%87%B8-339428225/" target="_blank"
+                    title="LinkedIn" style="margin: 0 10px; color: white;">
+                    <i class="fab fa-linkedin"></i>
+                </a>
+                <a href="https://www.fiverr.com/s/AyzB1B5" target="_blank" title="Fiverr"
+                    style="margin: 0 10px; color: white;">
+                    <i class="fas fa-briefcase"></i>
+                </a>
+                <a href="https://www.upwork.com/freelancers/~01f9255de2a30ff1e0" target="_blank" title="Upwork"
+                    style="margin: 0 10px; color: white;">
+                    <i class="fas fa-user-tie"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Scroll to Top Button -->
+        <button onclick="scrollToTop()" title="Go to top"
+            style="position: fixed; bottom: 30px; right: 30px; background-color: #2563eb; color: white; border: none; border-radius: 50%; width: 45px; height: 45px; font-size: 20px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
+            ↑
+        </button>
+    </footer>
+
     <!-- jQuery and Bootstrap JS -->
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
-    <!-- Inside your <script> tag -->
-
-    <script>
-        $(document).ready(function () {
-            let extractedContent = [];
-
-            // Upload document
-            $('#uploadForm').submit(function (e) {
-                e.preventDefault();
-                $('#upload-status').text("Uploading...");
-                $('#chatForm button').prop('disabled', true); // disable ask
-                const fileInput = $(this).find('input[type="file"]')[0];
-                const allowedTypes = ['application/pdf', 'text/plain',
-                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',  // .docx
-                    'application/vnd.ms-excel',                                                // .xls
-                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',       // .xlsx
-                    'text/csv'];
-
-                if (!fileInput.files.length || !allowedTypes.includes(fileInput.files[0].type)) {
-                    $('#upload-status')
-                        .removeClass('text-success')
-                        .addClass('text-danger')
-                        .text("❌ Unsupported file format. Please upload PDF, TXT, DOCX, CSV, or XLSX.");
-                    $('#chatForm button').prop('disabled', false);  // re-enable Ask
-                    return;
-                }
-
-
-                let formData = new FormData(this);
-
-                $.ajax({
-                    url: '/upload',
-                    method: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function (res) {
-                        $('#upload-status').text(res.message || 'Document uploaded successfully.');
-                        $('#extracted-text').empty();
-                        $('#chat-box').empty(); // ✅ Clear old conversation
-                        $('#downloadBtn').addClass('d-none');
-                        $('#chatForm button').prop('disabled', false); // ✅ Re-enable ask
-                    },
-                    error: function () {
-                        $('#upload-status').text("Failed to upload document.");
-                    }
-                });
-            });
-
-            // Extract clauses/summary
-            $('#extractBtn').click(function () {
-                $('#extracted-text').html("Extracting...");
-                $('#downloadBtn').addClass('d-none');
-
-                $.get('/extract', function (res) {
-                    let html = "<ul>";
-                    extractedContent = [];  // ✅ RESET properly
-
-                    res.forEach(function (item) {
-                        html += "<li class='point-item'>" + item + "</li>";
-                        extractedContent.push(item);  // ✅ Store in array
-                    });
-
-                    html += "</ul>";
-                    $('#extracted-text').html(html);
-                    $('#downloadBtn').removeClass('d-none');
-                }).fail(function () {
-                    $('#extracted-text').html("Extraction failed. Upload a document first.");
-                });
-            });
-
-            // Ask question
-            $('#chatForm').submit(function (e) {
-                e.preventDefault();
-                const question = $('#question').val();
-                $('#chat-box').append(`<div class='user-msg'><strong>You:</strong> ${question}</div>`);
-                $('#question').val('');
-                $.post('/ask', { question: question }, function (res) {
-                    $('#chat-box').append(`<div class='bot-msg'><strong>Bot:</strong> ${res.answer}</div>`);
-                    $('#chat-box').scrollTop($('#chat-box')[0].scrollHeight);
-                }).fail(function () {
-                    $('#chat-box').append(`<div class='bot-msg'><strong>Bot:</strong> Something went wrong.</div>`);
-                });
-            });
-
-            // Download PDF
-            $('#downloadBtn').click(function () {
-                if (extractedContent.length === 0) {
-                    alert("No content to download.");
-                    return;
-                }
-
-                fetch('/download_pdf', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ points: extractedContent })  // ✅ Cleanly pass array
-                })
-                    .then(res => {
-                        if (!res.ok) throw new Error("Failed to generate PDF");
-                        return res.blob();
-                    })
-                    .then(blob => {
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = 'extracted_summary.pdf';
-                        document.body.appendChild(a);
-                        a.click();
-                        a.remove();
-                    })
-                    .catch(err => alert("Error: " + err.message));
-            });
-
-        });
-    </script>
-
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 
 
 </body>

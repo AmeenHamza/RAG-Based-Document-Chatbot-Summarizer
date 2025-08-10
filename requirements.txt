@@ -11,7 +11,5 @@ langchain_community
 uuid
 flask-bcrypt
 pymongo
-
-
-mongodb+srv://ifhamansari:maa55208@cluster0.uqpxkcl.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
-41bc7eeca4f560c2213c044633d7911e
+python-dotenv
+gunicorn
